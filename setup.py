@@ -13,7 +13,7 @@ setup(
   author="garciparedes",
   author_email="sergio@garciparedes.me",
   url="http://tfgraph.readthedocs.io/en/latest/",
-  download_url="https://github.com/garciparedes/tfgraph",
+  download_url="https://github.com/tfgraph/tfgraph",
   keywords=[
     "tfg", "bigdata", "tensorflow",
     "graph theory", "pagerank", "university of valladolid",
