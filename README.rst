@@ -27,8 +27,8 @@ This work consists of a study of a set of techniques and strategies related with
 
 Content
 -------
-* `Source Code <https://github.com/tfgraph/tfgraph/blob/master/src/tfgraph>`__
-* `API Documentation <http://tf-g.readthedocs.io/>`__
+* `Source Code <https://github.com/tfgraph/tfgraph/blob/master/tfgraph>`__
+* `API Documentation <http://tfgraph.readthedocs.io/>`__
 * `Code Examples <https://github.com/tfgraph/tfgraph/blob/master/examples>`__
 * `Tests <https://github.com/tfgraph/tfgraph/blob/master/tests>`__
 
