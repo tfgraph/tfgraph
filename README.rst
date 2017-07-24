@@ -10,14 +10,14 @@ TFGraph: Python's Tensorflow Graph Library
 .. |docs| image:: https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat-square
    :target: http://tfgraph.readthedocs.io/en/latest/?badge=latest
 
-.. |gitter| image:: https://badges.gitter.im/tfgraph/tfgraph.svg
+.. |gitter| image:: https://badges.gitter.im/tfgraph/tfgraph.svg?style=flat-square
    :alt: Join the chat at https://gitter.im/tfgraph/tfgraph
    :target: https://gitter.im/tfgraph/tfgraph?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
 
-.. |license| image:: https://img.shields.io/github/license/tfgraph/tfgraph.svg
+.. |license| image:: https://img.shields.io/github/license/tfgraph/tfgraph.svg?style=flat-square
     :target: https://github.com/tfgraph/tfgraph
 
-.. |release| image:: https://img.shields.io/github/release/tfgraph/tfgraph.svg
+.. |release| image:: https://img.shields.io/github/release/tfgraph/tfgraph.svg?style=flat-square
     :target: https://github.com/tfgraph/tfgraph
 
 |travisci| |codecov| |docs| |gitter| |license| |release|
