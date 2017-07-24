@@ -19,7 +19,7 @@ TFGraph
 
 .. |gitter| image:: https://badges.gitter.im/tfgraph/Lobby.svg
    :alt: Join the chat at https://gitter.im/tfgraph/Lobby
-   :target: https://gitter.im/tfgraph/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
+   :target: https://gitter.im/tfgraph/tfgraph?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
 
 |travisci| |codecov| |docs| |gitter|
 
