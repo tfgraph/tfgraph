@@ -49,7 +49,7 @@ class PageRank(TensorFlowObject, UpdateEdgeListener):
 
   """
 
-  def __init__(self, sess: tf.Session, name: str, graph: Graph, beta: float,
+  def __init__(self, sess: tf.Session, name: str, beta: float,
                T: Transition, writer: tf.summary.FileWriter = None,
                is_sparse: bool = False) -> None:
     """ The constructor of the class.

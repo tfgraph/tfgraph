@@ -75,8 +75,7 @@ class IterativePageRank(PageRank):
     """
     name = name + "_iter"
     T = TransitionResetMatrix(sess, name, graph, beta)
-    PageRank.__init__(self, sess, name, graph, beta, T, writer,
-                      is_sparse)
+    PageRank.__init__(self, sess, name, beta, T, writer, is_sparse)
     self.iter = lambda i, a, b: tf.matmul(a, tf.where(self.T.G.is_not_sink_tf,
                                                       self.T(), b))
 
