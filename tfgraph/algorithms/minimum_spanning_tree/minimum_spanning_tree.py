@@ -1,6 +1,7 @@
 import tensorflow as tf
 
-from tfgraph import TensorFlowObject, Graph
+from tfgraph.utils import TensorFlowObject
+from tfgraph.graph import Graph
 
 
 class MinimumSpanningTree(TensorFlowObject):
