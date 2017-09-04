@@ -1,7 +1,7 @@
 import tensorflow as tf
 
-from tfgraph.utils import TensorFlowObject
 from tfgraph.graph import Graph
+from tfgraph.utils import TensorFlowObject
 
 
 class MinimumSpanningTree(TensorFlowObject):
@@ -32,3 +32,15 @@ class MinimumSpanningTree(TensorFlowObject):
     TensorFlowObject.__init__(self, sess, name)
     self.graph = graph
     pass
+
+  def run(self) -> Graph:
+    """ The run method.
+
+    This method calculates the Minimum Spanning Tree of the graph and then
+    returns it.
+
+    Returns:
+      (:obj:`tfgraph.Graph`): Graph that represents the MST.
+    """
+    raise NotImplementedError(
+      str(self.__class__.__name__) + ' not implemented yet')
