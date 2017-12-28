@@ -7,8 +7,8 @@ def test_graph_constructor_empty():
   n = 10
   graph = tfgraph.GraphConstructor.empty(tf.Session(), "G_proof", n=n)
 
-  assert graph.n == n
-  assert graph.m == 0
+  assert graph.vertex_count == n
+  assert graph.edge_count == 0
 
 
 def test_graph_constructor_unweighted_random():
@@ -17,6 +17,6 @@ def test_graph_constructor_unweighted_random():
   graph = tfgraph.GraphConstructor.unweighted_random(tf.Session(), "G_proof", n=n,
                                                   m=m)
 
-  assert graph.n == n
-  assert graph.m == m
+  assert graph.vertex_count == n
+  assert graph.edge_count == m
   

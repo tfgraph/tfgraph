@@ -5,14 +5,14 @@ import tfgraph
 
 
 def test_graph_cardinality():
-  graph = tfgraph.Graph(tf.Session(), "G_proof", edges_np=tfgraph.DataSets.naive_6())
+  graph = tfgraph.Graph(tf.Session(), "G_proof", edges=tfgraph.DataSets.naive_6())
 
-  assert graph.n == 6
-  assert graph.m == 9
+  assert graph.vertex_count == 6
+  assert graph.edge_count == 9
 
 
 def test_graph_out_degrees():
-  graph = tfgraph.Graph(tf.Session(), "G_proof", edges_np=tfgraph.DataSets.naive_6())
+  graph = tfgraph.Graph(tf.Session(), "G_proof", edges=tfgraph.DataSets.naive_6())
 
   np.testing.assert_array_equal(
     graph.out_degrees_np,
@@ -20,7 +20,7 @@ def test_graph_out_degrees():
 
 
 def test_graph_in_degrees():
-  graph = tfgraph.Graph(tf.Session(), "G_proof", edges_np=tfgraph.DataSets.naive_6())
+  graph = tfgraph.Graph(tf.Session(), "G_proof", edges=tfgraph.DataSets.naive_6())
 
   np.testing.assert_array_equal(
     graph.in_degrees_np,
@@ -32,11 +32,11 @@ def test_graph_upgradeable():
     g: tfgraph.Graph = tfgraph.GraphConstructor.from_edges(
       sess, "G1", edges_np=tfgraph.DataSets.naive_6())
 
-    g_upgradeable: tfgraph.Graph = tfgraph.GraphConstructor.empty(sess, "G2", g.n)
+    g_upgradeable: tfgraph.Graph = tfgraph.GraphConstructor.empty(sess, "G2", g.vertex_count)
 
     for e in tfgraph.DataSets.naive_6():
       g_upgradeable.append(e[0], e[1])
 
     np.testing.assert_array_equal(
-      sess.run(g.A_tf),
-      sess.run(g_upgradeable.A_tf))
+      sess.run(g.adjacency),
+      sess.run(g_upgradeable.adjacency))
