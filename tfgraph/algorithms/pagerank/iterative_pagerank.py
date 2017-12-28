@@ -193,7 +193,7 @@ class IterativePageRank(PageRank):
     """
     if topics is not None:
       return tf.ones([self.transition.graph.vertex_count,
-                      self.transition.G.vertex_count]) * tf.reshape(
+                      self.transition.graph.vertex_count]) * tf.reshape(
         tf.scatter_nd(tf.constant(topics, shape=[len(topics), 1]),
                       len(topics) * [1 / len(topics)],
                       [self.transition.graph.vertex_count]),

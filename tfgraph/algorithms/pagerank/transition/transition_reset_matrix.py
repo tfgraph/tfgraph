@@ -106,7 +106,7 @@ class TransitionResetMatrix(Transition):
             tf.div(
               self.graph.adjacency_vertex(edge[0]),
               self.graph.out_degrees_vertex(edge[0]))),
-          (1 - self.beta) / self.graph.n)))
+          (1 - self.beta) / self.graph.vertex_count)))
     else:
       self.run_tf(tf.scatter_nd_update(
         self.transition, [[edge[0]]],
@@ -118,6 +118,7 @@ class TransitionResetMatrix(Transition):
                        self.graph.adjacency_vertex(edge[0]),
                        self.graph.out_degrees_vertex(edge[0]))),
                    (
-                       1 - self.beta) / self.graph.n),
-                 tf.fill([1, self.graph.n], tf.pow(self.graph.n, -1)))))
+                       1 - self.beta) / self.graph.vertex_count),
+                 tf.fill([1, self.graph.vertex_count],
+                         self.graph.vertex_count ** (-1)))))
     self._notify(edge, change)

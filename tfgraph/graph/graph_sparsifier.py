@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 
 from tfgraph.graph.graph import Graph
@@ -33,7 +34,8 @@ class GraphSparsifier(Graph):
 
   def __init__(self, sess: tf.Session, p: float, graph: Graph = None,
                is_sparse: bool = False, name: str = None,
-               vertex_count: int = None, writer: tf.summary.FileWriter = None) -> None:
+               vertex_count: int = None,
+               writer: tf.summary.FileWriter = None) -> None:
     """ Class Constructor of the GraphSparsfiier
 
     This method is called to construct a Graph object. This block of code
@@ -75,10 +77,12 @@ class GraphSparsifier(Graph):
 
       edges_np = GraphSparsifier._sample_edges(sess, graph, p)
 
-      Graph.__init__(self, sess, name, edges=edges_np, vertex_count=graph.vertex_count,
+      Graph.__init__(self, sess, name, edges=edges_np,
+                     vertex_count=graph.vertex_count,
                      is_sparse=is_sparse, writer=writer)
     else:
-      Graph.__init__(self, sess, name, vertex_count=vertex_count, is_sparse=is_sparse)
+      Graph.__init__(self, sess, name, vertex_count=vertex_count,
+                     is_sparse=is_sparse)
 
   @staticmethod
   def _sample_edges(sess: tf.Session, graph: Graph, p: float):
@@ -105,10 +109,10 @@ class GraphSparsifier(Graph):
       tf.slice(graph.edge_list, [0, 0], [graph.edge_count, 1]),
       dtype=tf.float32), [graph.edge_count])
 
-    cond_tf = p / tf.div(tf.log(tf.sqrt(graph.vertex_count) + a),
-                         tf.log(tf.sqrt(graph.vertex_count)))
+    cond_tf = p / tf.div(tf.log(np.sqrt(graph.vertex_count) + a),
+                         np.log(np.sqrt(graph.vertex_count)))
 
-    return graph.edge_list_np[sess.run(
+    return sess.run(graph.edge_list)[sess.run(
       tf.transpose(tf.less_equal(distribution_tf, cond_tf)))]
 
   def append(self, src: int, dst: int):
@@ -132,8 +136,8 @@ class GraphSparsifier(Graph):
     distribution_tf = tf.random_uniform([1], 0.0, 1.0)
 
     cond_tf = self.p / tf.div(
-      tf.log(tf.sqrt(self.vertex_count) + self.out_degrees_vertex(src)),
-      tf.log(tf.sqrt(self.vertex_count)))
+      tf.log(np.sqrt(self.vertex_count) + self.out_degrees_vertex(src)),
+      np.log(np.sqrt(self.vertex_count)))
 
     if self.run_tf(tf.less_equal(distribution_tf, cond_tf)):
       Graph.append(self, src, dst)

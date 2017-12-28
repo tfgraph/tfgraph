@@ -12,19 +12,22 @@ def test_graph_cardinality():
 
 
 def test_graph_out_degrees():
-  graph = tfgraph.Graph(tf.Session(), "G_proof", edges=tfgraph.DataSets.naive_6())
+  with tf.Session() as sess:
+    graph = tfgraph.Graph(sess, "G_proof", edges=tfgraph.DataSets.naive_6())
 
-  np.testing.assert_array_equal(
-    graph.out_degrees_np,
-    np.array([[2.0], [2.0], [3.0], [1.0], [0.0], [1.0]]))
+    np.testing.assert_array_equal(
+      sess.run(graph.out_degrees),
+      np.array([[2.0], [2.0], [3.0], [1.0], [0.0], [1.0]]))
 
 
 def test_graph_in_degrees():
-  graph = tfgraph.Graph(tf.Session(), "G_proof", edges=tfgraph.DataSets.naive_6())
 
-  np.testing.assert_array_equal(
-    graph.in_degrees_np,
-    np.array([[2.0, 1.0, 1.0, 2.0, 1.0, 2.0]]))
+  with tf.Session() as sess:
+    graph = tfgraph.Graph(sess, "G_proof", edges=tfgraph.DataSets.naive_6())
+
+    np.testing.assert_array_equal(
+      sess.run(graph.in_degrees),
+      np.array([[2.0, 1.0, 1.0, 2.0, 1.0, 2.0]]))
 
 
 def test_graph_upgradeable():

@@ -183,7 +183,7 @@ class GraphConstructor:
     """
     boolean_distribution = tf.less_equal(
       tf.random_uniform([graph.edge_count], 0.0, 1.0), p)
-    edges_np = graph.edge_list_np[sess.run(boolean_distribution)]
+    edges_np = sess.run(graph.edge_list)[sess.run(boolean_distribution)]
     return Graph(sess, graph.name + "_sparsifier",
                  edges=edges_np, is_sparse=is_sparse)
 
