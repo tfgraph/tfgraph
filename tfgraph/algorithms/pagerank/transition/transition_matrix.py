@@ -20,7 +20,7 @@ class TransitionMatrix(Transition):
       TensorFlow's Writer, that is used to obtain stats.
     is_sparse (bool): Use sparse Tensors if it's set to True. Not implemented
       yet. Show the Todo.
-    G (:obj:`tfgraph.Graph`):  The graph on which the transition is referred.
+    graph (:obj:`tfgraph.Graph`):  The graph on which the transition is referred.
     transition (:obj:`tf.Variable`): The 2-D `tf.Tensor` with the same shape as
       adjacency matrix of the graph, that represents the probabilities to
       move from one vertex to another.
@@ -50,20 +50,21 @@ class TransitionMatrix(Transition):
                         is_sparse=is_sparse)
 
     self.transition = tf.Variable(
-      tf.where(self.G.is_not_sink_tf,
-               tf.div(self.G.A_tf, self.G.out_degrees_tf),
-               tf.fill([self.G.n, self.G.n], 1 / self.G.n)),
+      tf.where(tf.not_equal(self.graph.sink, 0),
+               tf.div(self.graph.adjacency, self.graph.out_degrees),
+               tf.fill([self.graph.vertex_count, self.graph.vertex_count],
+                       1 / self.graph.vertex_count)),
       name=self.name)
     self.run_tf(tf.variables_initializer([self.transition]))
 
-  def get_tf(self, *args, **kwargs):
+  def get(self, *args, **kwargs):
     """ The method that returns the transition Tensor.
 
     This method will return the transition matrix of the graph.
 
     Args:
-      *args: The args of the `get_tf()` method.
-      **kwargs: The kwargs of the `get_tf()` method.
+      *args: The args of the `get()` method.
+      **kwargs: The kwargs of the `get()` method.
 
     Returns:
       (:obj:`tf.Tensor`): A `tf.Tensor` that contains the distribution of
@@ -94,13 +95,14 @@ class TransitionMatrix(Transition):
     if change > 0.0:
       self.run_tf(tf.scatter_nd_update(
         self.transition, [[edge[0]]],
-        tf.div(self.G.A_tf_vertex(edge[0]),
-               self.G.out_degrees_tf_vertex(edge[0]))))
+        tf.div(self.graph.adjacency_vertex(edge[0]),
+               self.graph.out_degrees_vertex(edge[0]))))
     else:
       self.run_tf(tf.scatter_nd_update(
         self.transition, [[edge[0]]],
-        tf.where(self.G.is_not_sink_tf_vertex(edge[0]),
-                 tf.div(self.G.A_tf_vertex(edge[0]),
-                        self.G.out_degrees_tf_vertex(edge[0])),
-                 tf.fill([1, self.G.n], tf.pow(self.G.n_tf, -1)))))
+        tf.where(tf.not_equal(self.graph.sink_vertex(edge[0]), 0),
+                 tf.div(self.graph.adjacency_vertex(edge[0]),
+                        self.graph.out_degrees_vertex(edge[0])),
+                 tf.fill([1, self.graph.vertex_count],
+                         tf.pow(self.graph.vertex_count, -1)))))
     self._notify(edge, change)

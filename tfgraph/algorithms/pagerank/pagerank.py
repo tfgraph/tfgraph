@@ -3,12 +3,11 @@ from typing import List
 
 import numpy as np
 import tensorflow as tf
-from tfgraph.utils.math.vector_norm import VectorNorm
 
 from tfgraph.algorithms.pagerank import Transition
-from tfgraph.graph import Graph
 from tfgraph.utils.callbacks.update_edge_listener import UpdateEdgeListener
 from tfgraph.utils.math.convergence_criterion import ConvergenceCriterion
+from tfgraph.utils.math.vector_norm import VectorNorm
 from tfgraph.utils.tensorflow_object import TensorFlowObject
 from tfgraph.utils.utils import Utils
 
@@ -32,12 +31,12 @@ class PageRank(TensorFlowObject, UpdateEdgeListener):
       the TensorFlow operations.
     name (str): This attribute represents the name of the object in TensorFlow's
       op Graph.
-    G (:obj:`tfgraph.Graph`): The graph on witch it will be calculated the
+    graph (:obj:`tfgraph.Graph`): The graph on witch it will be calculated the
       algorithm. It will be treated as Directed Weighted Graph.
     beta (float): The reset probability of the random walks, i.e. the
       probability that a user that surfs the graph an decides to jump to another
       vertex not connected to the current.
-    T (:obj:`tfgraph.Transition`): The transition matrix that provides the
+    transition (:obj:`tfgraph.Transition`): The transition matrix that provides the
       probability distribution relative to the walk to another node of the graph.
     v (:obj:`tf.Variable`): The stationary distribution vector. It contains the
       normalized probability to stay in each vertex of the graph. So represents
@@ -50,7 +49,7 @@ class PageRank(TensorFlowObject, UpdateEdgeListener):
   """
 
   def __init__(self, sess: tf.Session, name: str, beta: float,
-               T: Transition, writer: tf.summary.FileWriter = None,
+               transition: Transition, writer: tf.summary.FileWriter = None,
                is_sparse: bool = False) -> None:
     """ The constructor of the class.
 
@@ -65,7 +64,7 @@ class PageRank(TensorFlowObject, UpdateEdgeListener):
       beta (float): The reset probability of the random walks, i.e. the
         probability that a user that surfs the graph an decides to jump to
         another vertex not connected to the current.
-      T (:obj:`tfgraph.Transition`): The transition matrix that provides the
+      transition (:obj:`tfgraph.Transition`): The transition matrix that provides the
         probability distribution relative to the walk to another node of the
         graph.
       v (:obj:`tf.Variable`): The stationary distribution vector. It contains
@@ -82,10 +81,12 @@ class PageRank(TensorFlowObject, UpdateEdgeListener):
     UpdateEdgeListener.__init__(self)
 
     self.beta = beta
-    self.T = T
-    self.T.attach(self)
-    self.v = tf.Variable(tf.fill([1, self.T.G.n], tf.pow(self.T.G.n_tf, -1)),
-                         name=self.T.G.name + "_" + self.name + "_v")
+    self.transition = transition
+    self.transition.attach(self)
+    self.v = tf.Variable(
+      tf.fill([1, self.transition.graph.vertex_count],
+              self.transition.graph.vertex_count ** (- 1)),
+      name=self.transition.graph.name + "_" + self.name + "_v")
     self.run_tf(tf.variables_initializer([self.v]))
 
   def error_vector_compare_tf(self, other_pr: 'PageRank',
@@ -113,8 +114,8 @@ class PageRank(TensorFlowObject, UpdateEdgeListener):
       * Implement ranking based only on the `k` better ranked vertices.
 
     """
-    if 0 < k < self.T.G.n - 1:
-      if 0 < k < self.T.G.n - 1:
+    if 0 < k < self.transition.graph.n - 1:
+      if 0 < k < self.transition.graph.n - 1:
         warnings.warn('k-best error comparison not implemented yet')
 
     return tf.reshape(
@@ -181,7 +182,7 @@ class PageRank(TensorFlowObject, UpdateEdgeListener):
         Default to `tfgraph.ConvergenceCriterion.ONE`.
 
     Returns:
-      (:obj:`tf.Tensor`): A 1-D `tf.Tensor` of [n] shape, where `n` is the
+      (:obj:`tf.Tensor`): A 1-D `tf.Tensor` of [vertex_count] shape, where `vertex_count` is the
         cardinality of the graph vertex set. It contains the normalized rank of
         vertex `i` at position `i`.
 
@@ -229,7 +230,7 @@ class PageRank(TensorFlowObject, UpdateEdgeListener):
         Default to `tfgraph.ConvergenceCriterion.ONE`.
 
     Returns:
-      (:obj:`np.ndarray`): A 1-D `np.ndarray` of [n] shape, where `n` is the
+      (:obj:`np.ndarray`): A 1-D `np.ndarray` of [vertex_count] shape, where `vertex_count` is the
         cardinality of the graph vertex set. It contains the normalized rank of
         vertex `i` at position `i`.
 
@@ -244,8 +245,8 @@ class PageRank(TensorFlowObject, UpdateEdgeListener):
     """ Generates a ranked version of PageRank results.
 
     This method returns the PageRank ranking of the graph sorted by the position
-    of each vertex in the rank. So it generates a 2-D matrix with shape [n,2]
-    where n is the cardinality of the vertex set of the graph, and at the first
+    of each vertex in the rank. So it generates a 2-D matrix with shape [vertex_count,2]
+    where vertex_count is the cardinality of the vertex set of the graph, and at the first
     column it contains the index of vertex and the second column contains it
     normalized rank. The `i` row is referred to the vertex with `i` position in
     the rank.
@@ -275,9 +276,8 @@ class PageRank(TensorFlowObject, UpdateEdgeListener):
     """
     self.pagerank_vector_tf(convergence, steps, topics, topics_decrement)
     ranks = tf.map_fn(
-      lambda x: [x, tf.gather(tf.reshape(self.v, [self.T.G.n]), x)],
-      tf.transpose(
-        tf.py_func(Utils.ranked, [tf.scalar_mul(-1, self.v)], tf.int64)),
+      lambda x: [x, tf.gather(tf.reshape(self.v, [self.transition.graph.vertex_count]), x)],
+      tf.transpose(tf.py_func(Utils.ranked, [tf.scalar_mul(-1, self.v)], tf.int64)),
       dtype=[tf.int64, tf.float32])
     return np.concatenate(self.run_tf(ranks), axis=1)
 
@@ -306,7 +306,7 @@ class PageRank(TensorFlowObject, UpdateEdgeListener):
         Default to `tfgraph.ConvergenceCriterion.ONE`.
 
     Returns:
-      (:obj:`tf.Tensor`): A 1-D `tf.Tensor` of [n] shape, where `n` is the
+      (:obj:`tf.Tensor`): A 1-D `tf.Tensor` of [vertex_count] shape, where `vertex_count` is the
         cardinality of the graph vertex set. It contains the normalized rank of
         vertex `i` at position `i`.
 
@@ -332,7 +332,7 @@ class PageRank(TensorFlowObject, UpdateEdgeListener):
         to `None`.
 
     Returns:
-      (:obj:`tf.Tensor`): A 1-D `tf.Tensor` of [n] shape, where `n` is the
+      (:obj:`tf.Tensor`): A 1-D `tf.Tensor` of [vertex_count] shape, where `vertex_count` is the
         cardinality of the graph vertex set. It contains the normalized rank of
         vertex `i` at position `i`.
 
@@ -353,7 +353,7 @@ class PageRank(TensorFlowObject, UpdateEdgeListener):
         to `None`.
 
     Returns:
-      (:obj:`tf.Tensor`): A 1-D `tf.Tensor` of [n] shape, where `n` is the
+      (:obj:`tf.Tensor`): A 1-D `tf.Tensor` of [vertex_count] shape, where `vertex_count` is the
         cardinality of the graph vertex set. It contains the normalized rank of
         vertex `i` at position `i`.
 

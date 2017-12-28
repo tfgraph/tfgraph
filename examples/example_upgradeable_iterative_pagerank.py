@@ -24,7 +24,7 @@ def main():
       sess, "PR1", graph, beta)
 
     g_upgradeable: tfgraph.Graph = tfgraph.GraphConstructor.empty(
-      sess, "G2", graph.n, writer)
+      sess, "G2", graph.vertex_count, writer)
 
     pr_upgradeable: tfgraph.PageRank = tfgraph.IterativePageRank(
       sess, "PR2", g_upgradeable, beta)

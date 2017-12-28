@@ -43,7 +43,7 @@ class GraphConstructor:
         `edges_np`.
 
     """
-    return Graph(sess, name, edges_np=edges_np, writer=writer,
+    return Graph(sess, name, edges=edges_np, writer=writer,
                  is_sparse=is_sparse)
 
   @staticmethod
@@ -70,10 +70,10 @@ class GraphConstructor:
 
     Returns:
       (:obj:`tfgraph.Graph`): A empty graph that allows additions and deletions of
-        edges from vertex in the interval [0,n].
+        edges from vertex in the interval [0,vertex_count].
 
     """
-    return Graph(sess, name, n=n, writer=writer, is_sparse=sparse)
+    return Graph(sess, name, vertex_count=n, writer=writer, is_sparse=sparse)
 
   @staticmethod
   def empty_sparsifier(sess: tf.Session,
@@ -105,10 +105,10 @@ class GraphConstructor:
 
     Returns:
       (:obj:`tfgraph.GraphSparsifier`): A empty graph that allows additions and
-        deletions of edges from vertex in the interval [0,n].
+        deletions of edges from vertex in the interval [0,vertex_count].
 
     """
-    return GraphSparsifier(sess=sess, name=name, n=n, p=p, writer=writer,
+    return GraphSparsifier(sess=sess, name=name, vertex_count=n, p=p, writer=writer,
                            is_sparse=is_sparse)
 
   @staticmethod
@@ -117,7 +117,7 @@ class GraphConstructor:
                         is_sparse: bool = False) -> Graph:
     """ Generates a random unweighted graph.
 
-    This method generates a random unweighted graph with `n` vertex and `m`
+    This method generates a random unweighted graph with `vertex_count` vertex and `edge_count`
     edges. The edge set is generated using a uniform distribution.
 
     Args:
@@ -135,11 +135,11 @@ class GraphConstructor:
 
     Returns:
       (:obj:`tfgraph.GraphSparsifier`): A empty graph that allows additions and
-        deletions of edges from vertex in the interval [0,n].
+        deletions of edges from vertex in the interval [0,vertex_count].
 
     """
     if m > n * (n - 1):
-      raise ValueError('m would be less than n * (n - 1)')
+      raise ValueError('edge_count would be less than vertex_count * (vertex_count - 1)')
     edges_np = np.random.random_integers(0, n - 1, [m, 2])
 
     cond = True
@@ -156,7 +156,7 @@ class GraphConstructor:
       edges_np = edges_np[edges_np[:, 0] != edges_np[:, 1]]
       cond = len(edges_np) != m
 
-    return Graph(sess, name, edges_np=edges_np, writer=writer,
+    return Graph(sess, name, edges=edges_np, writer=writer,
                  is_sparse=is_sparse)
 
   @staticmethod
@@ -182,10 +182,10 @@ class GraphConstructor:
 
     """
     boolean_distribution = tf.less_equal(
-      tf.random_uniform([graph.m], 0.0, 1.0), p)
+      tf.random_uniform([graph.edge_count], 0.0, 1.0), p)
     edges_np = graph.edge_list_np[sess.run(boolean_distribution)]
     return Graph(sess, graph.name + "_sparsifier",
-                 edges_np=edges_np, is_sparse=is_sparse)
+                 edges=edges_np, is_sparse=is_sparse)
 
   @classmethod
   def as_sparsifier(cls, sess, graph: Graph, p: float, is_sparse=False):

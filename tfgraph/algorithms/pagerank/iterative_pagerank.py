@@ -31,7 +31,7 @@ class IterativePageRank(PageRank):
     beta (float): The reset probability of the random walks, i.e. the
       probability that a user that surfs the graph an decides to jump to another
       vertex not connected to the current.
-    T (:obj:`tfgraph.Transition`): The transition matrix that provides the
+    transition (:obj:`tfgraph.Transition`): The transition matrix that provides the
       probability distribution relative to the walk to another node of the graph.
     v (:obj:`tf.Variable`): The stationary distribution vector. It contains the
       normalized probability to stay in each vertex of the graph. So represents
@@ -59,7 +59,7 @@ class IterativePageRank(PageRank):
         the TensorFlow operations.
       name (str): This attribute represents the name of the object in
         TensorFlow's op Graph.
-      G (:obj:`tfgraph.Graph`): The graph on witch it will be calculated the
+      graph (:obj:`tfgraph.Graph`): The graph on witch it will be calculated the
         algorithm. It will be treated as Directed Weighted Graph.
       beta (float): The reset probability of the random walks, i.e. the
         probability that a user that surfs the graph an decides to jump to
@@ -76,8 +76,9 @@ class IterativePageRank(PageRank):
     name = name + "_iter"
     T = TransitionResetMatrix(sess, name, graph, beta)
     PageRank.__init__(self, sess, name, beta, T, writer, is_sparse)
-    self.iter = lambda i, a, b: tf.matmul(a, tf.where(self.T.G.is_not_sink_tf,
-                                                      self.T(), b))
+    self.iter = lambda i, a, b: tf.matmul(a, tf.where(
+      tf.not_equal(self.transition.graph.sink, 0),
+      self.transition(), b))
 
   def _pr_convergence_tf(self, convergence: float, topics: List[int] = None,
                          c_criterion=ConvergenceCriterion.ONE) -> tf.Tensor:
@@ -103,7 +104,7 @@ class IterativePageRank(PageRank):
         Default to `tfgraph.ConvergenceCriterion.ONE`.
 
     Returns:
-      (:obj:`tf.Tensor`): A 1-D `tf.Tensor` of [n] shape, where `n` is the
+      (:obj:`tf.Tensor`): A 1-D `tf.Tensor` of [vertex_count] shape, where `vertex_count` is the
         cardinality of the graph vertex set. It contains the normalized rank of
         vertex `i` at position `i`.
 
@@ -114,9 +115,11 @@ class IterativePageRank(PageRank):
         tf.while_loop(c_criterion,
                       lambda i, v, v_last, c, n:
                       (i + 1, self.iter(i, v, p), v, c, n),
-                      [0.0, self.v, tf.zeros([1, self.T.G.n]),
+                      [0.0, self.v,
+                       tf.zeros([1, self.transition.graph.vertex_count]),
                        convergence,
-                       self.T.G.n_tf], name=self.name + "_while_conv")[
+                       self.transition.graph.vertex_count],
+                      name=self.name + "_while_conv")[
           1]))
     return self.v
 
@@ -137,7 +140,7 @@ class IterativePageRank(PageRank):
         to `None`.
 
     Returns:
-      (:obj:`tf.Tensor`): A 1-D `tf.Tensor` of [n] shape, where `n` is the
+      (:obj:`tf.Tensor`): A 1-D `tf.Tensor` of [vertex_count] shape, where `vertex_count` is the
         cardinality of the graph vertex set. It contains the normalized rank of
         vertex `i` at position `i`.
 
@@ -164,7 +167,7 @@ class IterativePageRank(PageRank):
         to `None`.
 
     Returns:
-      (:obj:`tf.Tensor`): A 1-D `tf.Tensor` of [n] shape, where `n` is the
+      (:obj:`tf.Tensor`): A 1-D `tf.Tensor` of [vertex_count] shape, where `vertex_count` is the
         cardinality of the graph vertex set. It contains the normalized rank of
         vertex `i` at position `i`.
 
@@ -183,18 +186,23 @@ class IterativePageRank(PageRank):
         to `None`.
 
     Returns:
-      (:obj:`tf.Tensor`): A 2-D `tf.Tensor` of [n,n] shape, where `n` is the
+      (:obj:`tf.Tensor`): A 2-D `tf.Tensor` of [vertex_count,vertex_count] shape, where `vertex_count` is the
         cardinality of the graph vertex set. It contains the extended version of
         normalized personalized vector.
 
     """
     if topics is not None:
-      return tf.ones([self.T.G.n, self.T.G.n]) * tf.reshape(
+      return tf.ones([self.transition.graph.vertex_count,
+                      self.transition.G.vertex_count]) * tf.reshape(
         tf.scatter_nd(tf.constant(topics, shape=[len(topics), 1]),
                       len(topics) * [1 / len(topics)],
-                      [self.T.G.n]), [1, self.T.G.n])
+                      [self.transition.graph.vertex_count]),
+        [1, self.transition.graph.vertex_count])
     else:
-      return tf.fill([self.T.G.n, self.T.G.n], tf.pow(self.T.G.n_tf, -1))
+      return tf.fill(
+        [self.transition.graph.vertex_count,
+         self.transition.graph.vertex_count],
+        self.transition.graph.vertex_count ** (- 1))
 
   def update_edge(self, edge: np.ndarray, change: float) -> None:
     """ The callback to receive notifications about edge changes in the graph.

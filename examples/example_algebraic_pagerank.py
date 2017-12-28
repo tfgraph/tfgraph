@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 
-import tensorflow as tf
-import numpy as np
 import timeit
+
+import numpy as np
+import tensorflow as tf
 
 import tfgraph
 
@@ -16,7 +17,7 @@ def main():
     writer: tf.summary.FileWriter = tf.summary.FileWriter('logs/tensorflow/')
 
     graph: tfgraph.Graph = tfgraph.GraphConstructor.from_edges(
-      sess, "G", edges_np, is_sparse=False)
+      sess, "graph", edges_np, is_sparse=False)
 
     pr_alg: tfgraph.PageRank = tfgraph.AlgebraicPageRank(sess, "PR", graph, beta)
 

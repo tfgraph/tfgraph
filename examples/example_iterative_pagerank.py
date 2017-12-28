@@ -17,7 +17,7 @@ def main():
     writer: tf.summary.FileWriter = tf.summary.FileWriter('logs/tensorflow/')
 
     graph: tfgraph.Graph = tfgraph.GraphConstructor.from_edges(
-      sess, "G", edges_np, is_sparse=False)
+      sess, "graph", edges_np, is_sparse=False)
 
     pr_itr: tfgraph.PageRank = tfgraph.IterativePageRank(sess, "PR", graph, beta)
 

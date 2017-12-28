@@ -13,7 +13,7 @@ class Transition(TensorFlowObject, UpdateEdgeNotifier, UpdateEdgeListener):
   and also to store the common attributes that uses all Transition
   implementations.
 
-  The heiress classes need to implement the `get_tf()` method that provides the
+  The heiress classes need to implement the `get()` method that provides the
   transitions.
 
   Attributes:
@@ -27,7 +27,7 @@ class Transition(TensorFlowObject, UpdateEdgeNotifier, UpdateEdgeListener):
       implemented yet. Show the Todo.
     _listeners (:obj:`set`): The set of objects that will be notified when an
       edge modifies it weight.
-    G (:obj:`tfgraph.Graph`):  The graph on which the transition is referred.
+    graph (:obj:`tfgraph.Graph`):  The graph on which the transition is referred.
 
   """
 
@@ -53,35 +53,35 @@ class Transition(TensorFlowObject, UpdateEdgeNotifier, UpdateEdgeListener):
     TensorFlowObject.__init__(self, sess, name + "_T", writer, is_sparse)
     UpdateEdgeNotifier.__init__(self)
 
-    self.G = graph
-    self.G.attach(self)
+    self.graph = graph
+    self.graph.attach(self)
 
   def __call__(self, *args, **kwargs):
     """ The call method.
 
     In this case is used to retrieve the transition `tf.Tensor` that allows
     the algorithms to know the transition probabilities between each node. It
-    calls the `get_tf()` method that is implemented by inner classes.
+    calls the `get()` method that is implemented by inner classes.
 
     Args:
-      *args: The args of the `get_tf()` method.
-      **kwargs: The kwargs of the `get_tf()` method.
+      *args: The args of the `get()` method.
+      **kwargs: The kwargs of the `get()` method.
 
     Returns:
       (:obj:`tf.Tensor`): A `tf.Tensor` that contains the distribution of
         transitions over vertices of the graph.
 
     """
-    return self.get_tf(args, kwargs)
+    return self.get(args, kwargs)
 
-  def get_tf(self, *args, **kwargs):
+  def get(self, *args, **kwargs):
     """ The method that returns the transition Tensor.
 
     This method will return the transition matrix of the graph.
 
     Args:
-      *args: The args of the `get_tf()` method.
-      **kwargs: The kwargs of the `get_tf()` method.
+      *args: The args of the `get()` method.
+      **kwargs: The kwargs of the `get()` method.
 
     Returns:
       (:obj:`tf.Tensor`): A `tf.Tensor` that contains the distribution of
@@ -89,4 +89,4 @@ class Transition(TensorFlowObject, UpdateEdgeNotifier, UpdateEdgeListener):
 
     """
     raise NotImplementedError(
-      'subclasses must override get_tf()!')
+      'subclasses must override get()!')

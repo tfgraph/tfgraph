@@ -6,7 +6,7 @@ from tfgraph.utils.tensorflow_object import TensorFlowObject, TF_type
 
 
 def __str__(self) -> str:
-  return str(self.run_tf(self.L_tf))
+  return str(self.run_tf(self.laplacian))
 
 
 class Graph(TensorFlowObject, UpdateEdgeNotifier):
@@ -26,21 +26,19 @@ class Graph(TensorFlowObject, UpdateEdgeNotifier):
     _listeners (:obj:`set`): The set of objects that will be notified when an
       edge modifies it weight.
     n (int): Represents the cardinality of the vertex set as Python `int`.
-    n_tf (:obj:`tf.Tensor`): Represents the cardinality of the vertex set as 0-D
-      Tensor.
-    m (int): Represents the cardinality of the edge set as Python `int`.
-    A_tf (:obj:`tf.Tensor`): Represents the Adjacency matrix of the graph as
-      2-D Tensor with shape [n,n].
-    out_degrees_tf (:obj:`tf.Tensor`): Represents the out-degrees of the
-      vertices of the graph as 2-D Tensor with shape [n, 1]
-    in_degrees_tf (:obj:`tf.Tensor`): Represents the in-degrees of the vertices
-      of the graph as 2-D Tensor with shape [1, n]
+    edge_count (int): Represents the cardinality of the edge set as Python `int`.
+    adjacency (:obj:`tf.Tensor`): Represents the Adjacency matrix of the graph as
+      2-D Tensor with shape [vertex_count,vertex_count].
+    out_degrees (:obj:`tf.Tensor`): Represents the out-degrees of the
+      vertices of the graph as 2-D Tensor with shape [vertex_count, 1]
+    in_degrees (:obj:`tf.Tensor`): Represents the in-degrees of the vertices
+      of the graph as 2-D Tensor with shape [1, vertex_count]
 
   """
 
   def __init__(self, sess: tf.Session, name: str,
                writer: tf.summary.FileWriter = None,
-               edges_np: np.ndarray = None, n: int = None,
+               edges: np.ndarray = None, vertex_count: int = None,
                is_sparse: bool = False) -> None:
     """ Class Constructor of the Graph
 
@@ -49,7 +47,7 @@ class Graph(TensorFlowObject, UpdateEdgeNotifier):
 
     This class can be initialized using an edge list, that fill the graph at
     this moment, or can be construct it from the cardinality of vertices set
-    given by `n` parameter.
+    given by `vertex_count` parameter.
 
     Args:
       sess (:obj:`tf.Session`): This attribute represents the session that runs
@@ -59,10 +57,10 @@ class Graph(TensorFlowObject, UpdateEdgeNotifier):
       writer (:obj:`tf.summary.FileWriter`, optional): This attribute represents
         a TensorFlow's Writer, that is used to obtain stats. The default value
         is `None`.
-      edges_np (:obj:`np.ndarray`, optional): The edge set of the graph codifies
-        as `edges_np[:,0]` represents the sources and `edges_np[:,1]` the
+      edges (:obj:`np.ndarray`, optional): The edge set of the graph codifies
+        as `edges[:,0]` represents the sources and `edges[:,1]` the
         destinations of the edges. The default value is `None`.
-      n (int, optional): Represents the cardinality of the vertex set. The
+      vertex_count (int, optional): Represents the cardinality of the vertex set. The
         default value is `None`.
       is_sparse (bool, optional): Use sparse Tensors if it's set to `True`. The
         default value is False` Not implemented yet. Show the Todo for more
@@ -76,34 +74,33 @@ class Graph(TensorFlowObject, UpdateEdgeNotifier):
     TensorFlowObject.__init__(self, sess, name, writer, is_sparse)
     UpdateEdgeNotifier.__init__(self)
 
-    if edges_np is not None:
-      if n is not None:
-        self.n = max(n, int(edges_np.max(axis=0).max() + 1))
+    if edges is not None:
+      if vertex_count is not None:
+        self.vertex_count = max(vertex_count, int(edges.max(axis=0).max() + 1))
       else:
-        self.n = int(edges_np.max(axis=0).max() + 1)
-      self.m = int(edges_np.shape[0])
-      A_init = tf.scatter_nd(edges_np.tolist(), self.m * [1.0],
-                             [self.n, self.n])
-    elif n is not None:
-      self.n = n
-      self.m = 0
-      A_init = tf.zeros([self.n, self.n])
+        self.vertex_count = int(edges.max(axis=0).max() + 1)
+      self.edge_count = int(edges.shape[0])
+      A_init = tf.scatter_nd(edges.tolist(), self.edge_count * [1.0],
+                             [self.vertex_count, self.vertex_count])
+    elif vertex_count is not None:
+      self.vertex_count = vertex_count
+      self.edge_count = 0
+      A_init = tf.zeros([self.vertex_count, self.vertex_count])
     else:
-      raise ValueError('Graph constructor must be have edges or n')
+      raise ValueError('Graph constructor must have edges or vertex_count')
 
-    self.n_tf = tf.Variable(float(self.n), tf.float32,
-                            name=self.name + "_n")
-    self.A_tf = tf.Variable(A_init, tf.float64,
-                            name=self.name + "_A")
-    self.out_degrees_tf = tf.Variable(
-      tf.reduce_sum(self.A_tf, 1, keep_dims=True),
+    self.adjacency = tf.Variable(A_init, tf.float64, name=self.name + "_A")
+
+    self.out_degrees = tf.Variable(
+      tf.reduce_sum(self.adjacency, 1, keep_dims=True),
       name=self.name + "_d_out")
-    self.in_degrees_tf = tf.Variable(
-      tf.reduce_sum(self.A_tf, 0, keep_dims=True),
+
+    self.in_degrees = tf.Variable(
+      tf.reduce_sum(self.adjacency, 0, keep_dims=True),
       name=self.name + "_d_in")
-    self.run_tf(tf.variables_initializer([self.A_tf, self.n_tf]))
-    self.run_tf(tf.variables_initializer([
-      self.out_degrees_tf, self.in_degrees_tf]))
+
+    self.run_tf(tf.variables_initializer([self.adjacency]))
+    self.run_tf(tf.variables_initializer([self.out_degrees, self.in_degrees]))
 
   def __str__(self) -> str:
     """ Transforms the graph to a string.
@@ -115,24 +112,24 @@ class Graph(TensorFlowObject, UpdateEdgeNotifier):
       (str): representing the laplacian matrix to visualize it.
 
     """
-    return str(self.run_tf(self.L_tf))
+    return str(self.run_tf(self.laplacian))
 
   @property
-  def L_tf(self) -> tf.Tensor:
+  def laplacian(self) -> tf.Tensor:
     """ This method returns the Laplacian of the graph.
 
         The method generates a 2-D Array containing the laplacian matrix of the
         graph
 
         Returns:
-          (:obj:`tf.Tensor`): A 2-D Tensor with [n,n] shape where n is the
+          (:obj:`tf.Tensor`): A 2-D Tensor with [vertex_count,vertex_count] shape where vertex_count is the
             cardinality of the vertex set
 
         """
-    return tf.diag(self.out_degrees_tf_vector) - self.A_tf
+    return tf.diag(self.out_degrees_vector) - self.adjacency
 
   @property
-  def is_not_sink_tf(self) -> tf.Tensor:
+  def sink(self) -> tf.Tensor:
     """ This method returns if a vertex is a sink vertex as vector.
 
     The method generates a 1-D Tensor containing the boolean values that
@@ -143,9 +140,9 @@ class Graph(TensorFlowObject, UpdateEdgeNotifier):
         of the vertex set.
 
     """
-    return tf.not_equal(self.out_degrees_tf_vector, 0)
+    return self.out_degrees_vector
 
-  def is_not_sink_tf_vertex(self, vertex: int) -> TF_type:
+  def sink_vertex(self, vertex: int) -> TF_type:
     """ This method returns if a vertex is a sink vertex as vector.
 
     The method generates a 1-D Tensor containing the boolean values that
@@ -159,24 +156,9 @@ class Graph(TensorFlowObject, UpdateEdgeNotifier):
         vertex
 
     """
-    return tf.not_equal(
-      tf.reshape([self.out_degrees_tf_vertex(vertex)], [1]), 0)
+    return tf.reshape([self.out_degrees_vertex(vertex)], [1])
 
-  @property
-  def out_degrees_np(self) -> np.ndarray:
-    """ This method returns the degree of all vertex as vector.
-
-    The method generates a 1-D Array containing the out-degree of the vertex `i`
-    at position `i`
-
-    Returns:
-      (:obj:`np.ndarray`): A 1-D Array with the same length as cardinality of the
-        vertex set.
-
-    """
-    return self.run_tf(self.out_degrees_tf)
-
-  def out_degrees_tf_vertex(self, vertex: int) -> tf.Tensor:
+  def out_degrees_vertex(self, vertex: int) -> tf.Tensor:
     """ This method returns the degree of all vertex as vector.
 
     The method generates a 0-D Array containing the out-degree of the vertex i.
@@ -189,10 +171,10 @@ class Graph(TensorFlowObject, UpdateEdgeNotifier):
         vertex set.
 
     """
-    return tf.gather(self.out_degrees_tf, [vertex])
+    return tf.gather(self.out_degrees, [vertex])
 
   @property
-  def edge_list_tf(self) -> tf.Tensor:
+  def edge_list(self) -> tf.Tensor:
     """ Method that returns the edge set of the graph as list.
 
     This method return all the edges of the graph codified as 2-D matrix in
@@ -204,39 +186,24 @@ class Graph(TensorFlowObject, UpdateEdgeNotifier):
        the edge set in the first dimension and 2 in the second.
 
     """
-    return tf.cast(tf.where(tf.not_equal(self.A_tf, 0)), tf.int64)
+    return tf.cast(tf.where(tf.not_equal(self.adjacency, 0)), tf.int64)
 
   @property
-  def edge_list_np(self) -> np.ndarray:
-    """ Method that returns the edge set of the graph as list.
-
-    This method return all the edges of the graph codified as 2-D matrix in
-    which the first dimension represents each edge and second dimension the
-    source and destination vertices of each edge.
-
-    Returns:
-      (:obj:`np.ndarray`): A 2-D Array with the he same length as cardinality of
-        the edge set in the first dimension and 2 in the second.
-
-    """
-    return self.run_tf(self.edge_list_tf)
-
-  @property
-  def L_pseudo_inverse_tf(self) -> tf.Tensor:
+  def laplacian_pseudo_inverse(self) -> tf.Tensor:
     """ Method that returns the pseudo inverse of the Laplacian matrix.
 
     This method calculates the pseudo inverse matrix of the Laplacian of the
     Graph. It generates a matrix of the same shape as the Laplacian matrix, i.e.
-    [n, n] where n is the cardinality of the vertex set.
+    [vertex_count, vertex_count] where vertex_count is the cardinality of the vertex set.
 
     Returns:
       (:obj:`tf.Tensor`): A 2-D square Tensor with the he same length as
         cardinality of the vertex set representing the laplacian pseudo inverse.
 
     """
-    return tf.py_func(np.linalg.pinv, [self.L_tf], tf.float32)
+    return tf.py_func(np.linalg.pinv, [self.laplacian], tf.float32)
 
-  def A_tf_vertex(self, vertex: int) -> tf.Tensor:
+  def adjacency_vertex(self, vertex: int) -> tf.Tensor:
     """ Method that returns the adjacency of an individual vertex.
 
     This method extracts the corresponding row referred to the `vertex` passed
@@ -252,49 +219,35 @@ class Graph(TensorFlowObject, UpdateEdgeNotifier):
         of the vertex set.
 
     """
-    return tf.gather(self.A_tf, [vertex])
+    return tf.gather(self.adjacency, [vertex])
 
   @property
-  def in_degrees_np(self) -> np.ndarray:
-    """ This method returns the in-degree of all vertex as vector.
-
-    The method generates a 1-D Array containing the in-degree of the vertex `i`
-    at position `i`
-
-    Returns:
-      (:obj:`np.ndarray`): A 1-D Array with the same length as cardinality of the
-        vertex set.
-
-    """
-    return self.run_tf(self.in_degrees_tf)
-
-  @property
-  def in_degrees_tf_vector(self):
+  def in_degrees_vector(self):
     """ The in-degrees of the vertices of the graph
 
     Method that returns the in-degrees of the vertices of the graph as 1-D
-    Tensor with shape [n]
+    Tensor with shape [vertex_count]
 
     Returns:
       (:obj:`tf.Tensor`): A 1-D Tensor with the same length as the cardinality
         of the vertex set.
 
     """
-    return tf.reshape(self.in_degrees_tf, [self.n])
+    return tf.reshape(self.in_degrees, [self.vertex_count])
 
   @property
-  def out_degrees_tf_vector(self):
+  def out_degrees_vector(self):
     """ The out-degrees of the vertices of the graph
 
     Method that returns the out-degrees of the vertices of the graph as 1-D
-    Tensor with shape [n]
+    Tensor with shape [vertex_count]
 
     Returns:
       (:obj:`tf.Tensor`): A 1-D Tensor with the same length as the cardinality
       of the vertex set.
 
     """
-    return tf.reshape(self.out_degrees_tf, [self.n])
+    return tf.reshape(self.out_degrees, [self.vertex_count])
 
   def append(self, src: int, dst: int) -> None:
     """ Append an edge to the graph.
@@ -313,10 +266,10 @@ class Graph(TensorFlowObject, UpdateEdgeNotifier):
     if src and dst is None:
       raise ValueError(
         "tfgraph and dst must not be None ")
-    self.run_tf([tf.scatter_nd_add(self.A_tf, [[src, dst]], [1.0]),
-                 tf.scatter_nd_add(self.out_degrees_tf, [[src, 0]], [1.0]),
-                 tf.scatter_nd_add(self.in_degrees_tf, [[0, dst]], [1.0])])
-    self.m += 1
+    self.run_tf([tf.scatter_nd_add(self.adjacency, [[src, dst]], [1.0]),
+                 tf.scatter_nd_add(self.out_degrees, [[src, 0]], [1.0]),
+                 tf.scatter_nd_add(self.in_degrees, [[0, dst]], [1.0])])
+    self.edge_count += 1
     self._notify(np.array([src, dst]), 1)
 
   def remove(self, src: int, dst: int) -> None:
@@ -336,8 +289,8 @@ class Graph(TensorFlowObject, UpdateEdgeNotifier):
     if src and dst is None:
       raise ValueError(
         "tfgraph and dst must not be None ")
-    self.run_tf([tf.scatter_nd_add(self.A_tf, [[src, dst]], [-1.0]),
-                 tf.scatter_nd_add(self.out_degrees_tf, [[src, 0]], [-1.0]),
-                 tf.scatter_nd_add(self.in_degrees_tf, [[0, dst]], [-1.0])])
-    self.m -= 1
+    self.run_tf([tf.scatter_nd_add(self.adjacency, [[src, dst]], [-1.0]),
+                 tf.scatter_nd_add(self.out_degrees, [[src, 0]], [-1.0]),
+                 tf.scatter_nd_add(self.in_degrees, [[0, dst]], [-1.0])])
+    self.edge_count -= 1
     self._notify(np.array([src, dst]), -1)

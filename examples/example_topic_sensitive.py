@@ -14,7 +14,7 @@ def main():
 
   with tf.Session() as sess:
     graph: tfgraph.Graph = tfgraph.GraphConstructor.from_edges(
-      sess, "G", edges_np, is_sparse=False)
+      sess, "graph", edges_np, is_sparse=False)
 
     pr_iter: tfgraph.PageRank = tfgraph.IterativePageRank(sess, "PR1", graph, beta)
 

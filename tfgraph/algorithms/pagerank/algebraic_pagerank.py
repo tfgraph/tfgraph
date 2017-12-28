@@ -31,7 +31,7 @@ class AlgebraicPageRank(PageRank):
     beta (float): The reset probability of the random walks, i.e. the
       probability that a user that surfs the graph an decides to jump to another
       vertex not connected to the current.
-    T (:obj:`tfgraph.Transition`): The transition matrix that provides the
+    transition (:obj:`tfgraph.Transition`): The transition matrix that provides the
       probability distribution relative to the walk to another node of the graph.
     v (:obj:`tf.Variable`): The stationary distribution vector. It contains the
       normalized probability to stay in each vertex of the graph. So represents
@@ -57,7 +57,7 @@ class AlgebraicPageRank(PageRank):
         the TensorFlow operations.
       name (str): This attribute represents the name of the object in
         TensorFlow's op Graph.
-      G (:obj:`tfgraph.Graph`): The graph on witch it will be calculated the
+      graph (:obj:`tfgraph.Graph`): The graph on witch it will be calculated the
         algorithm. It will be treated as Directed Weighted Graph.
       beta (float): The reset probability of the random walks, i.e. the
         probability that a user that surfs the graph an decides to jump to
@@ -72,8 +72,8 @@ class AlgebraicPageRank(PageRank):
 
     """
     name = name + "_alg"
-    T = TransitionMatrix(sess, name, graph)
-    PageRank.__init__(self, sess, name, beta, T, writer, is_sparse)
+    transition = TransitionMatrix(sess, name, graph)
+    PageRank.__init__(self, sess, name, beta, transition, writer, is_sparse)
 
   def _pr_exact_tf(self, topics: List[int] = None) -> tf.Tensor:
     """ Method that implements a exact version of PageRank.
@@ -88,16 +88,16 @@ class AlgebraicPageRank(PageRank):
         to `None`. Not implemented yet.
 
     Returns:
-      (:obj:`tf.Tensor`): A 1-D `tf.Tensor` of [n] shape, where `n` is the
+      (:obj:`tf.Tensor`): A 1-D `tf.Tensor` of [vertex_count] shape, where `vertex_count` is the
         cardinality of the graph vertex set. It contains the normalized rank of
         vertex `i` at position `i`.
 
     """
     if topics is not None:
       warnings.warn('Personalized PageRank not implemented yet!')
-    a = tf.fill([1, self.T.G.n], (1 - self.beta) / self.T.G.n_tf)
+    a = tf.fill([1, self.transition.graph.vertex_count], (1 - self.beta) / self.transition.graph.vertex_count)
     b = tf.matrix_inverse(
-      tf.eye(self.T.G.n, self.T.G.n) - self.beta * self.T())
+      tf.eye(self.transition.graph.vertex_count, self.transition.graph.vertex_count) - self.beta * self.transition())
     self.run_tf(self.v.assign(tf.matmul(a, b)))
     return self.v
 
@@ -123,7 +123,7 @@ class AlgebraicPageRank(PageRank):
         Default to `tfgraph.ConvergenceCriterion.ONE`.
 
     Returns:
-      (:obj:`tf.Tensor`): A 1-D `tf.Tensor` of [n] shape, where `n` is the
+      (:obj:`tf.Tensor`): A 1-D `tf.Tensor` of [vertex_count] shape, where `vertex_count` is the
         cardinality of the graph vertex set. It contains the normalized rank of
         vertex `i` at position `i`.
 
@@ -149,7 +149,7 @@ class AlgebraicPageRank(PageRank):
         to `None`. Not implemented yet.
 
     Returns:
-      (:obj:`tf.Tensor`): A 1-D `tf.Tensor` of [n] shape, where `n` is the
+      (:obj:`tf.Tensor`): A 1-D `tf.Tensor` of [vertex_count] shape, where `vertex_count` is the
         cardinality of the graph vertex set. It contains the normalized rank of
         vertex `i` at position `i`.
 

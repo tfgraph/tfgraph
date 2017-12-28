@@ -18,7 +18,7 @@ def main():
       'logs/tensorflow/.')
 
     graph: tfgraph.Graph = tfgraph.GraphConstructor.from_edges(
-      sess, "G", edges_np, writer, is_sparse=False)
+      sess, "graph", edges_np, writer, is_sparse=False)
 
     pr_alge: tfgraph.PageRank = tfgraph.AlgebraicPageRank(sess, "PR1",
                                                     graph,
@@ -65,12 +65,12 @@ def main():
     print(elapsed)
 
     print(pr_iter.error_ranks_compare_np(pr_sparse))
-    print(graph.m)
-    print(g_sparse.m)
+    print(graph.edge_count)
+    print(g_sparse.edge_count)
     '''
     '''
     g_sparse_upgradeable = tfgraph.GraphConstructor.empty_sparsifier(
-        sess=sess, name="G_su", n=6301, p=0.5)
+        sess=sess, name="G_su", vertex_count=6301, p=0.5)
     pr_iter: tfgraph.PageRank = tfgraph.IterativePageRank(
         sess, "PR_su", g_sparse_upgradeable, beta)
 
